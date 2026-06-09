@@ -1,0 +1,26 @@
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: test-php:8.2
+    container_name: test-php
+    ports:
+      - "8081:80"
+    volumes:
+      - ../../app:/var/www/html
+    depends_on:
+      - mariadb
+
+  mariadb:
+    image: mariadb:11
+    container_name: test-mariadb
+    environment:
+      MARIADB_DATABASE: test
+      MARIADB_USER: test
+      MARIADB_PASSWORD: test
+      MARIADB_ROOT_PASSWORD: test
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker-runtime/mariadb:/var/lib/mysql
