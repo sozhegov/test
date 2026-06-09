@@ -148,14 +148,15 @@ foreach ($vendors as $v) {
 }
 
 // Складские остатки поставщиков по товарам.
+// Цены поставщиков держим близко к inPrice товара (±несколько %).
 $stocks = [
-    new Stock(vid: 1, pid: 1, price: 1400.00, qty: 3),
-    new Stock(vid: 1, pid: 2, price: 420.00,  qty: 10),
-    new Stock(vid: 2, pid: 1, price: 1380.00, qty: 1),
-    new Stock(vid: 3, pid: 1, price: 1350.00, qty: 20),
-    new Stock(vid: 3, pid: 3, price: 7600.00, qty: 4),
-    new Stock(vid: 4, pid: 3, price: 7200.00, qty: 4),
-    new Stock(vid: 4, pid: 4, price: 230.00,  qty: 15),
+    new Stock(vid: 1, pid: 1, price: 1050.00, qty: 3),   // pid1 inPrice 1000
+    new Stock(vid: 1, pid: 2, price: 1290.00, qty: 10),  // pid2 inPrice 1300
+    new Stock(vid: 2, pid: 1, price: 1010.00, qty: 1),   // pid1 inPrice 1000
+    new Stock(vid: 3, pid: 1, price: 1030.00, qty: 20),  // pid1 inPrice 1000
+    new Stock(vid: 3, pid: 3, price: 5100.00, qty: 4),   // pid3 inPrice 5000
+    new Stock(vid: 4, pid: 3, price: 4950.00, qty: 4),   // pid3 inPrice 5000
+    new Stock(vid: 4, pid: 4, price: 1980.00, qty: 15),  // pid4 inPrice 2000
 ];
 
 $insertStock = $db->prepare(
@@ -170,15 +171,26 @@ foreach ($stocks as $s) {
     ]);
 }
 
-// Диапазоны наценок: каждому поставщику одинаковая сетка диапазонов.
-$ranges = [
+// Общая сетка диапазонов наценок.
+$defaultRanges = [
     [0.00,     499.99,   1.4500],
     [500.00,   999.99,   1.4000],
     [1000.00,  4999.99,  1.3500],
     [5000.00,  99999.99, 1.3000],
 ];
+
+// У поставщика 4 — намеренный пробел 1500.00–2999.99: его сток pid4 (1980)
+// не попадёт ни в один диапазон, и сработает defaultCharge (chargeFound=0).
+$rangesByVendor = [
+    4 => [
+        [0.00,    1499.99,  1.4500],
+        [3000.00, 99999.99, 1.3000],
+    ],
+];
+
 $priceCharges = [];
 foreach ($vendors as $v) {
+    $ranges = $rangesByVendor[$v->vid] ?? $defaultRanges;
     foreach ($ranges as [$from, $to, $charge]) {
         $priceCharges[] = new PriceCharge(vid: (int) $v->vid, fromPrice: $from, toPrice: $to, charge: $charge);
     }
